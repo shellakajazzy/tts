@@ -60,6 +60,12 @@ async def on_message(message):
             vc.stop()
             return
 
+        with open("./sound_bites/sound_bites.json", "r") as sound_bites_file:
+            sound_bites = json.load(sound_bites_file)
+            if content in sound_bites:
+                vc.play(discord.FFmpegPCMAudio(f"./sound_bites/{sound_bites[content]}"))
+                return
+
         process = subprocess.Popen(
                 ["espeak-ng", content, "--stdout"],
                 stdout=subprocess.PIPE
