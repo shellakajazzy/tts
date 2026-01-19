@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+import asyncio
 import json
 import sys
 import subprocess
@@ -35,6 +36,13 @@ status = {
 async def on_message(message):
     await bot.process_commands(message)
 
+    if (status["read_msgs"] == True and
+        status["text_channel_id"] == message.channel.id and
+        message.content == ";s"):
+        vc = message.guild.voice_client
+        if vc and vc.is_connected(): vc.stop()
+        return
+
     if (status["read_msgs"] == False or
         message.author.bot or
         status["member_id"] != message.author.id or
@@ -65,6 +73,26 @@ async def on_message(message):
             if content in sound_bites:
                 vc.play(discord.FFmpegPCMAudio(f"./sound_bites/{sound_bites[content]}"))
                 return
+            elif content.split(":")[0] in sound_bites:
+                for sound in sound_bites[content.split(":")[0]]:
+                    if type(sound) == str: vc.play(discord.FFmpegPCMAudio(f"./sound_bites/{sound}"))
+                    elif type(sound) == int:
+                        process = subprocess.Popen(
+                                ["espeak-ng", content.split(":")[sound], "--stdout"],
+                                stdout=subprocess.PIPE
+                        )
+                        audio_source = discord.FFmpegPCMAudio(
+                                process.stdout,
+                                pipe=True,
+                                options=""
+                        )
+                        vc.play(audio_source)
+                    else: continue
+
+                    while True:
+                        if not vc.is_playing(): break
+                return
+
 
         process = subprocess.Popen(
                 ["espeak-ng", content, "--stdout"],
